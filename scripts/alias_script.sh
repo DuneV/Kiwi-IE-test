@@ -1,7 +1,8 @@
-# _stack_build_autocomplete()
-# {
-#     TODO: My awesome autocomplete function, sugestion look how COMPREPLY works.
-# }
+_stack_build_autocomplete()
+{
+    # TODO: My awesome autocomplete function, sugestion look how COMPREPLY works.
+    
+}
 
 alias stack-build-up-to="source /workspace/scripts/stack_build.sh --symlink-install --packages-up-to"
 alias stack-build-select="source /workspace/scripts/stack_build.sh --symlink-install --packages-select"

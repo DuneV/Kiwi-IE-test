@@ -2,7 +2,7 @@
 
 ---
 # FINAL PROJECT
-NAME: **WRITE YOUR NAME HERE**
+NAME: Daniel Alejandro Alvarez Vanegas
 
 ---
 **INSTRUCTIONS**:
