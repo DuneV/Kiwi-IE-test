@@ -81,12 +81,26 @@ class FailDetector(Node):
         # keep the vector with the last self.n_samples samples. The most recent reading is stored at the first position
         self.imu_msgs_deque.appendleft(msg)
         self.accel_deque.appendleft(msg.linear_acceleration.z)
-
-        # compute delta time example
-        # dt = self.headers2dt(self.imu_msgs_deque[1], self.imu_msgs_deque[0])
-
         # TODO:
         # Detect collisions, collisions are related to big jerks, have you some idea?
+
+        # I define the jerk as the derivate of the aceleration respect time so with the expresion 
+        # To enter more details about how calculate it consultate file 
+        # We cacth 2 values at least of the
+        if len(self.accel_deque) > 1: 
+            # compute delta time example
+            dt = self.headers2dt(self.imu_msgs_deque[1], self.imu_msgs_deque[0])
+            # avoid division by zero 
+            if dt > 0:
+                # calculate the jerk
+                jerk = abs((self.accel_deque[0] - self.accel_deque[1]) / dt)
+                if jerk > self.collision_jerk:
+                    self.get_logger().warn(f"Collision detected! Jerk: {jerk}")
+                    fail_msg = Fails()
+                    fail_msg.type = "collision"
+                    fail_msg.severtity = "high"
+                    fail_msg.message = f"Detected a collision with jerk: {jerk}"
+                    self.pub_fail.publish(fail_msg)
 
     def chassis_imu_cb(self, msg: Imu) -> None:
         """Receive the chassis imu msg and process it to detect pitch changes"""
@@ -99,15 +113,27 @@ class FailDetector(Node):
         # Chassis Imu is aligned with the robot base link frame
         # TODO:
         # Detect rollovers
+        # I need to change this values based on the data 
+        roll, pitch, yaw = euler_from_quaternion(quat)
+        
+        if abs(roll) > 0.5 or abs(pitch) > 0.5:
+            self.get_logger().warn(f"Rollover detected! Roll: {roll}, Pitch: {pitch}")
+            fail_msg = Fails()
+            fail_msg.type = "rollover"
+            fail_msg.severity = "critical"
+            fail_msg.message = f"Detected a rollover. Roll: {roll}, Pitch: {pitch}"
+            self.pub_fail.publish(fail_msg)
 
     def bot_speed_cb(self, msg: Odometry) -> None:
         """Receive the speed command of the robot to know if its going forward or backwards"""
         self.bot_speed = msg.twist.twist.linear.x
         if self.bot_speed > 0.0 and self.motion_state != "forward":
             self.motion_state = "forward"
+            self.get_logger().info("Robot is moving forward.")
 
         elif self.bot_speed < 0.0 and self.motion_state != "backwards":
             self.motion_state = "backwards"
+            self.get_logger().info("Robot is moving backwards.")
 
 
 def main(args=None):
