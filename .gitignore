@@ -4,3 +4,5 @@ rover/ros2/log
 *.pyc
 rosbags/*
 !rosbags/.gitkeep
+
+__pycache__
