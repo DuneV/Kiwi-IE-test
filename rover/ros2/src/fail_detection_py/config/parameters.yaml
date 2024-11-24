@@ -1,0 +1,3 @@
+fail_detection_py:
+  ros__parameters:
+    model_path: "/workspace/rover/ros2/src/fail_detection_py/fail_detection_py/nodes/model_conditions.h5"
