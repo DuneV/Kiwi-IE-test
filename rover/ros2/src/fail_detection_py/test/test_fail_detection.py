@@ -1,4 +1,7 @@
-from fail_detection_py.fail_detection_node import FailDetectionLogic
+from rover.ros2.src.fail_detection_py.fail_detection_py.nodes.fail_detection_node import (
+    FailDetectionLogic,
+)
+
 
 def test_detect_failure():
     logic = FailDetectionLogic()

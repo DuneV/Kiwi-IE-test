@@ -81,6 +81,7 @@ class FailDetector(Node):
         # keep the vector with the last self.n_samples samples. The most recent reading is stored at the first position
         self.imu_msgs_deque.appendleft(msg)
         self.accel_deque.appendleft(msg.linear_acceleration.z)
+        
         # TODO:
         # Detect collisions, collisions are related to big jerks, have you some idea?
 

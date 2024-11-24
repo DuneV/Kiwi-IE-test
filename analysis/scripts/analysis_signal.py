@@ -17,7 +17,7 @@ def read_imu_data(input_bag: str, output_csv: str, _logger: logger):
         logger (logging.Logger): Logger instance for logging.
     """
     _logger.info("Init function.")
-    topic_name = "camera/imu"
+    topic_name = "/camera/imu"
     message_type = "sensor_msgs/msg/Imu"
 
     reader = rosbag2_py.SequentialReader()
