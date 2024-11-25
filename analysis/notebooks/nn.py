@@ -11,7 +11,7 @@ class LSTMModel:
     A class to handle the creation, compilation, and training of an LSTM-based model.
     """
 
-    def __init__(self, input_shape, num_classes, learning_rate=0.0001, batch_size=50, epochs=1000):
+    def __init__(self, _input_shape, _num_classes, _learning_rate=0.0001, _batch_size=50, _epochs=1000):
         """
         Initializes the LSTMModel with specified hyperparameters.
 
@@ -22,11 +22,11 @@ class LSTMModel:
             batch_size (int): Batch size for training. Default is 50.
             epochs (int): Number of training epochs. Default is 1000.
         """
-        self.input_shape = input_shape
-        self.num_classes = num_classes
-        self.learning_rate = learning_rate
-        self.batch_size = batch_size
-        self.epochs = epochs
+        self.input_shape = _input_shape
+        self.num_classes = _num_classes
+        self.learning_rate = _learning_rate
+        self.batch_size = _batch_size
+        self.epochs = _epochs
         self.model = None
 
     def build_model(self):

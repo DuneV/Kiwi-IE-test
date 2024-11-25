@@ -17,7 +17,7 @@ INFO_DICT = {"Collision": 0, "Bump": 1, "Normal": 2}
 
 class ImuHandler:
     def __init__(
-        self, collision_jerk, n_samples, pub_fail, logger, lstm_model, encoder
+        self, _collision_jerk, _n_samples, _pub_fail, _logger, _lstm_model, _encoder
     ):
         """
         Initialize the IMU handler.
@@ -30,18 +30,18 @@ class ImuHandler:
             lstm_model: Pre-trained LSTM model for collision detection.
             encoder: OneHotEncoder for decoding model predictions.
         """
-        self.collision_jerk = collision_jerk
-        self.imu_msgs_deque = deque(maxlen=n_samples)
-        self.accel_deque = deque(maxlen=n_samples)
-        self.accel_deque_x = deque(maxlen=n_samples)
-        self.accel_deque_y = deque(maxlen=n_samples)
-        self.accel_deque_z = deque(maxlen=n_samples)
-        self.jerk_deque = deque(maxlen=n_samples)
-        self.pub_fail = pub_fail
-        self.logger = logger
-        self.lstm_model = lstm_model  # Pre-trained LSTM model
-        self.encoder = encoder  # OneHotEncoder for decoding labels
-        self.required_samples = n_samples  # Required number of samples for the model
+        self.collision_jerk = _collision_jerk
+        self.imu_msgs_deque = deque(maxlen=_n_samples)
+        self.accel_deque_x = deque(maxlen=_n_samples)
+        self.accel_deque_y = deque(maxlen=_n_samples)
+        self.accel_deque_z = deque(maxlen=_n_samples)
+        self.jerk_deque = deque(maxlen=_n_samples)
+        self.pub_fail = _pub_fail
+        self.logger = _logger
+        self.lstm_model = _lstm_model  # Pre-trained LSTM model
+        self.encoder = _encoder  # OneHotEncoder for decoding labels
+        self.required_samples = _n_samples  # Required number of samples for the model
+        self.alert_state = None  # flag to order the priorities ->
 
     def imu_cb(self, msg: Imu):
         """
@@ -70,7 +70,6 @@ class ImuHandler:
                 self.jerk_deque.appendleft(jerk_magnitude)
 
         if len(self.jerk_deque) >= self.required_samples:
-
             input_data = np.array(self.jerk_deque).reshape(1, -1, 1)
 
             # Make prediction
@@ -95,7 +94,12 @@ class ImuHandler:
                 self.pub_fail.publish(fail_msg)
 
     def chassis_imu_cb(self, msg: Imu):
-        """Process chassis IMU data for rollover detection."""
+        """
+        Process chassis IMU data for rollover detection based on roll and pitch.
+
+        Args:
+            msg (Imu): Incoming IMU message containing orientation data.
+        """
         # Extract orientation from the IMU message
         quat = (
             msg.orientation.x,
@@ -105,12 +109,43 @@ class ImuHandler:
         )
         roll, pitch, yaw = euler_from_quaternion(quat)
 
-        # Check for rollover conditions
-        if abs(roll) > 0.5 or abs(pitch) > 0.5:
-            # Log and publish the rollover detection
+        # Evaluate the state based on roll and pitch
+        state = self.evaluate_rollover(roll, pitch)
+
+        if state == "roll over":
+            # Log and publish a critical fail for roll over
             self.logger.warn(f"Rollover detected! Roll: {roll}, Pitch: {pitch}")
             fail_msg = Fails()
             fail_msg.type = "rollover"
             fail_msg.severity = "critical"
             fail_msg.message = f"Detected a rollover. Roll: {roll}, Pitch: {pitch}"
             self.pub_fail.publish(fail_msg)
+        elif state == "pronounced":
+            # Log a warning for a pronounced event
+            self.logger.info(
+                f"Pronounced movement detected. Roll: {roll}, Pitch: {pitch}"
+            )
+        else:
+            # Log normal state
+            self.logger.debug("Normal movement detected.")
+
+    def evaluate_rollover(self, roll, pitch):
+        """
+        Evaluate the roll and pitch values to classify the state as:
+        - 'roll over': If roll > 1 or roll < -1, or pitch > 1 or pitch < -1.
+        - 'pronounced': If roll > 0.4 or roll < -0.4, or pitch > 0.4 or pitch < -0.4.
+        - 'normal': Otherwise.
+
+        Args:
+            roll (float): Roll value in radians.
+            pitch (float): Pitch value in radians.
+
+        Returns:
+            str: The classified state ('roll over', 'pronounced', or 'normal').
+        """
+        if abs(roll) > 1 or abs(pitch) > 1:
+            return "roll over"
+        elif abs(roll) > 0.4 or abs(pitch) > 0.4:
+            return "pronounced"
+        else:
+            return "normal"

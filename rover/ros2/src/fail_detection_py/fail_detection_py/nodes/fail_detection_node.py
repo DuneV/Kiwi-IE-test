@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 
 import os
+
+# deactivate innecesary warnings
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+
 import numpy as np
 from rclpy.node import Node
 from tensorflow.keras.models import load_model
@@ -9,10 +14,12 @@ from usr_msgs.msg import Fails
 from rclpy.qos import QoSProfile, QoSDurabilityPolicy
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import Imu
+from tensorflow.compat.v1 import logging
+
+logging.set_verbosity(logging.ERROR)
 from tensorflow.keras.models import load_model
 
 from fail_detection_py.callbacks.imu_handler import ImuHandler
-
 
 encoder = OneHotEncoder(sparse_output=False)
 encoder.fit(np.array(["collision", "Bump", "Normal"]).reshape(-1, 1))

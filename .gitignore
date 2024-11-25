@@ -4,5 +4,6 @@ rover/ros2/log
 *.pyc
 rosbags/*
 !rosbags/.gitkeep
-
 __pycache__
+opencv-build/opencv/*
+opencv-build/opencv_contrib/*

@@ -1,17 +1,16 @@
 # -----------------------------------------------------------------------------
-# Ubuntu 22.04 as the base image
+# Use Ubuntu 22.04 as the base image
 FROM ubuntu:22.04
 
-# actual UID
 ARG USERNAME=ada
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
 
+COPY ../rover /workspace/rover
 
-# Environment variables to avoid interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Update the system package list and install Python 3, pip, and common dependencies
+# Update the system package list and install Python 3
 RUN apt update && apt install -y --no-install-recommends \
     locales \
     python3 \
@@ -31,24 +30,19 @@ RUN apt update && apt install -y --no-install-recommends \
     alsa-base \
     alsa-tools \
     alsa-utils \
-    libasound2-dev \ 
+    # ._. HAHA
+    libasound2-dev \
     # ---------------------------------
     && apt autoremove && apt clean -y \
     && rm -rf /var/lib/apt/lists/*
 
-# Set up locales
-RUN locale-gen en_US.UTF-8
-ENV LANG en_US.UTF-8
-ENV LANGUAGE en_US:en
-ENV LC_ALL en_US.UTF-8
 # ------------------------------------------------------------------------------
 RUN \
-    # Create a non-root user to use 
+    # Create a non-root user to use if preferred - see https://aka.ms/vscode-remote/containers/non-root-user.
     groupadd --gid $USER_GID $USERNAME \
     && useradd -s /bin/bash --uid $USER_UID --gid $USER_GID -m $USERNAME \
     && chown -R $USER_UID:$USER_GID /home/$USERNAME \
     # ------------------------------
-    # Add sudo support for non-root user
     && apt-get update \
     && apt-get install -y sudo \
     && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
@@ -59,7 +53,8 @@ RUN \
 
 # ------------------------------------------------------------------------------
 # Installation of ROS2 IRON
-ENV ROS_DISTRO=iron
+ARG ROS_DISTRO=iron
+ENV ROS_DISTRO=${ROS_DISTRO}
 RUN \
     add-apt-repository universe \
     && curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key  -o /usr/share/keyrings/ros-archive-keyring.gpg \
@@ -92,25 +87,20 @@ RUN \
 
 WORKDIR /workspace
 
-COPY ../rover /workspace/rover
-
-
-RUN pip3 install \
+RUN pip3 install --no-cache-dir \
     tornado~=6.3.2 \
     simplejpeg~=1.6.3 \
     opencv-python \
     opencv-contrib-python \
     numpy \
-    -r rover/requirements.txt \
+    -r /workspace/rover/requirements.txt \
     && rm -rf /home/ada/.cache/pip
 
 # ------------------------------------------------------------------------------
-# Set Python 3 as the default Python
-RUN ln -s /usr/bin/python3 /usr/bin/python
-
 RUN echo "source /opt/ros/iron/setup.bash" >> /root/.bashrc
 RUN echo ". /workspace/rover/ros2/install/setup.bash" >> /root/.bashrc
-
+RUN ln -s /usr/bin/python3 /usr/bin/python
+RUN pip install --no-cache-dir -r requirements.txt
 RUN touch "/home/${USERNAME}/.bashrc" \
     && echo "source /workspace/scripts/alias_script.sh" >> "/home/${USERNAME}/.bashrc"
 
