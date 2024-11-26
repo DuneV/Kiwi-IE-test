@@ -8,7 +8,7 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 import numpy as np
 from rclpy.node import Node
-from tensorflow.keras.models import load_model
+import tensorflow as tf
 from sklearn.preprocessing import OneHotEncoder
 from usr_msgs.msg import Fails
 from rclpy.qos import QoSProfile, QoSDurabilityPolicy
@@ -17,13 +17,15 @@ from sensor_msgs.msg import Imu
 from tensorflow.compat.v1 import logging
 
 logging.set_verbosity(logging.ERROR)
-from tensorflow.keras.models import load_model
 
 from fail_detection_py.callbacks.imu_handler import ImuHandler
 
 encoder = OneHotEncoder(sparse_output=False)
 encoder.fit(np.array(["collision", "Bump", "Normal"]).reshape(-1, 1))
-lstm_model = load_model("model_conditions.h5")
+lstm_model = tf.lite.Interpreter(
+    "/workspace/rover/ros2/src/fail_detection_py/fail_detection_py/nodes/models/model_conditions_wtime2sy.tflite"
+)
+lstm_model.allocate_tensors()
 
 
 class FailDetector(Node):
@@ -37,18 +39,20 @@ class FailDetector(Node):
 
         # Publisher
         self.pub_fail = self.create_publisher(
-            Fails, "/fail_detection/fail", QoSProfile(depth=1)
+            Fails,
+            "/fail_detection/fail",
+            QoSProfile(depth=10, durability=QoSDurabilityPolicy.VOLATILE),
         )
         logger = self.get_logger()
 
         # Handler IMU
         self.imu_handler = ImuHandler(
-            collision_jerk=400.0,
-            n_samples=50,
-            pub_fail=self.pub_fail,
-            logger=logger,
-            lstm_model=lstm_model,
-            encoder=encoder,
+            _n_samples=6,
+            _pub_fail=self.pub_fail,
+            _logger=logger,
+            _lstm_model=lstm_model,
+            _encoder=encoder,
+            _node=self,
         )
 
         # Subs
@@ -60,3 +64,10 @@ class FailDetector(Node):
         )
 
         self.get_logger().info("FailDetector node initialized successfully :)!")
+
+    # def destroy_node(self):
+    #     """
+    #     Override destroy_node to stop the worker thread.
+    #     """
+    #     self.imu_handler.stop_worker()
+    #     super().destroy_node()

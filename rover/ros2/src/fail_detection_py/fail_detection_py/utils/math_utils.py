@@ -6,59 +6,29 @@ import numpy as np
 import math
 
 
-def classify_events_with_secondary_opinion(
-    jerk_deque,
-    threshold=0.5,
-    collision_range=(300, 12363.40),
-    bump_threshold=(12364, 45435),
-):
+def classify_event_with_threshold(jerk_deque, threshold=300) -> bool:
     """
-    Classifies events using a secondary opinion by analyzing jerk magnitudes in the deque.
+    Classifies events based on a simple threshold check of the jerk magnitude.
 
     Parameters:
         jerk_deque (deque): Queue containing jerk magnitudes.
-        threshold (float): Percentage (0-1) to determine left and right bounds around the peak jerk.
-        collision_range (tuple): Range of jerk magnitudes for collision events.
-        bump_threshold (tuple): Range of jerk magnitudes for bump events.
+        threshold (float): The threshold value to classify the event.
 
     Returns:
-        dict: Classification and statistics for the event.
+        dict: Classification of the event based on the threshold.
     """
-    if len(jerk_deque) < 50:
-        return {
-            "event_type": "insufficient_data",
-        }
-
     jerk_array = np.array(jerk_deque)
 
+    # Find the maximum jerk value in the deque
     max_jerk = jerk_array.max()
-    # mean_jerk = jerk_array.mean()
-    max_index = jerk_array.argmax()
 
-    jerk_threshold = threshold * max_jerk
-
-    left_bound = max_index
-    while left_bound > 0 and jerk_array[left_bound] >= jerk_threshold:
-        left_bound -= 1
-
-    right_bound = max_index
-    while (
-        right_bound < len(jerk_array) - 1 and jerk_array[right_bound] >= jerk_threshold
-    ):
-        right_bound += 1
-
-    duration = right_bound - left_bound
-
-    peak_to_duration = max_jerk / duration if duration > 0 else math.inf
-
-    if collision_range[0] <= peak_to_duration <= collision_range[1]:
-        event_type = "collision"
-    elif bump_threshold[0] <= peak_to_duration <= bump_threshold[1]:
-        event_type = "bump"
+    # Classify based on the threshold
+    if max_jerk >= threshold:
+        event_type = 1
     else:
-        event_type = "normal"
+        event_type = 0
 
-    return {"event_type": event_type}
+    return event_type
 
 
 # Truth Table:
