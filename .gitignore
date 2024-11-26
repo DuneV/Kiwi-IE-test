@@ -7,3 +7,4 @@ rosbags/*
 __pycache__
 opencv-build/opencv/*
 opencv-build/opencv_contrib/*
+/workspace/rover/ros2/src/fail_detection_cpp/tensorflow_cpp/*
