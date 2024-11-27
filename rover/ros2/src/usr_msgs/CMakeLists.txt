@@ -23,11 +23,8 @@ find_package(unique_identifier_msgs REQUIRED)
 find_package(builtin_interfaces REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 
-
-
-# Including messages
+# Including message files
 set(MSG_FILES
-  # Fail Detection
   "msg/fail_detection/Fail.msg"
   "msg/fail_detection/Fails.msg"
 )
@@ -35,8 +32,8 @@ set(MSG_FILES
 # Message generation
 rosidl_generate_interfaces(${PROJECT_NAME}
   ${MSG_FILES}
-  DEPENDENCIES builtin_interfaces std_msgs
+  DEPENDENCIES builtin_interfaces std_msgs  # Dependencias de los mensajes
 )
 
-ament_export_dependencies(rosidl_default_runtime)
+ament_export_dependencies(rosidl_default_runtime)  # Exporta las dependencias necesarias
 ament_package()

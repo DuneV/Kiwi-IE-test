@@ -5,6 +5,11 @@
 # clear
 # exit script on any error
 
+# del variable
+
+DELETE_BUILD=0
+
+
 set -e
 
 function parse_yaml {
@@ -26,12 +31,36 @@ function parse_yaml {
 
 BUILD=1
 LAUNCH=1
+
+
+# Help message function
+function print_help {
+    echo "Usage: startRobotics.sh [OPTIONS]"
+    echo ""
+    echo "Options:"
+    echo "  -b, --build [0|1]        Enable (1) or disable (0) the build process. Default: 1."
+    echo "  -l, --launch [0|1]       Enable (1) or disable (0) launching. Default: 1."
+    echo "  -d, --delete-build [0|1] Delete install, build, and log folders. Default: 0."
+    echo "  -h, --help               Show this help message and exit."
+    echo ""
+    echo "Examples:"
+    echo "  ./startRobotics.sh -b 1 -l 1 -d 1"
+    echo "  ./startRobotics.sh --build 0 --delete-build 1"
+    exit 0
+}
+
+
+
+# here I can add the option DELETE_BUILD
+
 for i in "$@"
 do
     case $i in
         -b|--build) BUILD="${2:-1}"
         ;;
         -l|--launch) LAUNCH="${2:-1}"
+        ;;
+        -d|--delete-build) DELETE_BUILD="${2:-0}" 
         ;;
         *)
         ;;
@@ -56,14 +85,13 @@ cd /workspace/rover
 source "${PWD%}/configs/env_vars.sh"
 
 #  ----------------------------------------------------------------------
-# Delete previous workspaces
+# Delete previous workspaces if I enabled the variable
 
-if [ "$DELETE_BUILD" = "1" ] 
-then
-  echo  [WARN]: "ROS2 Removing old shit ... "
-  rm -r ${PWD%}/ros2/install || true
-  rm -r ${PWD%}/ros2/build || true
-  rm -r ${PWD%}/ros2/log || true
+if [ "$DELETE_BUILD" = "1" ]; then
+  echo  [WARN]: "ROS2 Removing old shit haha XD ... "
+  rm -rf ${PWD%}/ros2/install || true
+  rm -rf ${PWD%}/ros2/build || true
+  rm -rf ${PWD%}/ros2/log || true
 fi
 
 #  ----------------------------------------------------------------------

@@ -6,71 +6,106 @@
 */
 
 #include <fail_detection_cpp/fail_detection.hpp>
+#include <deque>
+#include <cmath>
+
 using std::placeholders::_1;
 
-FailDetector::FailDetector(rclcpp::NodeOptions& options) : Node("fail_node", options)
+FailDetector::FailDetector(rclcpp::NodeOptions &options) : Node("fail_detector", options)
 {
-    auto default_sub_qos = rclcpp::QoS(rclcpp::SystemDefaultsQoS()).keep_last(1);
-    auto transient_local_qos = rclcpp::QoS(1).transient_local();
+    // Parámetros
+    this->declare_parameter<float>("collision_jerk", 400.0);
+    this->declare_parameter<int>("n_samples", 100);
 
-    // Subscribers
-    m_subs_imu_camera = this->create_subscription<sensor_msgs::msg::Imu>("/camera/imu", default_sub_qos,
-                                                                         std::bind(&FailDetector::ImuCb, this, _1));
+    this->get_parameter("collision_jerk", m_collision_jerk);
+    this->get_parameter("n_samples", m_n_samples);
+
+    // Configuración de las colas
+    m_accel_x = std::deque<float>(m_n_samples, 0.0f);
+    m_accel_y = std::deque<float>(m_n_samples, 0.0f);
+    m_accel_z = std::deque<float>(m_n_samples, 0.0f);
+    m_jerk_values = std::deque<float>(m_n_samples, 0.0f);
+
+    // Subscriptores
+    auto qos = rclcpp::QoS(1).keep_last(1);
+    m_subs_imu_camera = this->create_subscription<sensor_msgs::msg::Imu>(
+        "/camera/imu", qos, std::bind(&FailDetector::ImuCb, this, _1));
     m_subs_imu_chassis = this->create_subscription<sensor_msgs::msg::Imu>(
-        "/imu/data", default_sub_qos, std::bind(&FailDetector::ChassisImuCb, this, _1));
-    m_subs_bot_speed = this->create_subscription<nav_msgs::msg::Odometry>(
-        "/wheel_odometry/local_odometry", default_sub_qos, std::bind(&FailDetector::BotSpeedCb, this, _1));
+        "/imu/data", qos, std::bind(&FailDetector::ChassisImuCb, this, _1));
 
-    // Publishers
-    m_pub_fail = this->create_publisher<usr_msgs::msg::Fails>("/fail_detection/fail", transient_local_qos);
+    // Publicadores
+    m_pub_fail = this->create_publisher<usr_msgs::msg::Fails>("/fail_detection/fail", qos);
 
-    // Timers
-    // Add timers if you need someone
-    // m_stop_tmr = this->create_wall_timer(std::chrono::milliseconds(300), callback_method);
-    // m_stop_tmr->cancel();
-
-    RCLCPP_INFO(this->get_logger(), "Fail detector constructor: Success!");
+    RCLCPP_INFO(this->get_logger(), "FailDetector node initialized successfully :)!");
 }
 
 void FailDetector::ImuCb(sensor_msgs::msg::Imu::SharedPtr msg)
 {
-    // Camera imu is not aligned with the robot base link frame but is published in a big rate
+    // Agregar nueva aceleración
+    m_accel_x.push_front(msg->linear_acceleration.x);
+    m_accel_y.push_front(msg->linear_acceleration.y);
+    m_accel_z.push_front(msg->linear_acceleration.z);
 
-    // keep the vector with the last m_n_samples samples. The most recent reading is stored at the first position
-    m_imu_msgs_deque.push_front(*msg);
-    m_accel_deque.push_front(msg->linear_acceleration.z);
+    // Remover datos antiguos
+    m_accel_x.pop_back();
+    m_accel_y.pop_back();
+    m_accel_z.pop_back();
 
-    m_imu_msgs_deque.pop_back();
-    m_accel_deque.pop_back();
+    // Calcular el jerk si hay suficientes datos
+    if (m_accel_x.size() >= 2)
+    {
+        float dt = 0.02; // Tiempo aproximado entre muestras (20 ms)
+        float jerk_x = (m_accel_x[0] - m_accel_x[1]) / dt;
+        float jerk_y = (m_accel_y[0] - m_accel_y[1]) / dt;
+        float jerk_z = (m_accel_z[0] - m_accel_z[1]) / dt;
 
-    // Compute delta time example
-    // auto dt = headers2Dt(m_imu_msgs_deque.begin()->header, (m_imu_msgs_deque.begin()+1)->header)
+        float jerk_magnitude = std::sqrt(jerk_x * jerk_x + jerk_y * jerk_y + jerk_z * jerk_z);
+        m_jerk_values.push_front(jerk_magnitude);
+        m_jerk_values.pop_back();
 
-    // TODO:
-    // Detect collisions, collisions are related to big jerks, have you some idea?
-
+        // Detectar colisiones
+        if (jerk_magnitude > m_collision_jerk)
+        {
+            RCLCPP_WARN(this->get_logger(), "Collision detected! Jerk magnitude: %.2f", jerk_magnitude);
+            usr_msgs::msg::Fails fail_msg;
+            fail_msg.type = "collision";
+            fail_msg.severity = "high";
+            fail_msg.message = "Collision detected based on jerk magnitude.";
+            m_pub_fail->publish(fail_msg);
+        }
+    }
 }
 
 void FailDetector::ChassisImuCb(sensor_msgs::msg::Imu::SharedPtr msg)
 {
-    tf2::Quaternion quat(tf2Scalar(msg->orientation.x), tf2Scalar(msg->orientation.y), tf2Scalar(msg->orientation.z),
-                         tf2Scalar(msg->orientation.w));
-
-    // Chassis Imu is aligned with the robot base link frame
-    // TODO:
-    // Detect rollovers
+    // Calcular roll y pitch a partir del quaternion
+    tf2::Quaternion quat(msg->orientation.x, msg->orientation.y, msg->orientation.z, msg->orientation.w);
     double roll, pitch, yaw;
+    tf2::Matrix3x3(quat).getRPY(roll, pitch, yaw);
+
+    // Evaluar estados basados en roll y pitch
+    std::string state = evaluateRollover(roll, pitch);
+
+    if (state == "roll over")
+    {
+        RCLCPP_WARN(this->get_logger(), "Rollover detected! Roll: %.2f, Pitch: %.2f", roll, pitch);
+        usr_msgs::msg::Fails fail_msg;
+        fail_msg.type = "rollover";
+        fail_msg.severity = "critical";
+        fail_msg.message = "Detected a rollover.";
+        m_pub_fail->publish(fail_msg);
+    }
+    else if (state == "pronounced")
+    {
+        RCLCPP_INFO(this->get_logger(), "Pronounced movement detected. Roll: %.2f, Pitch: %.2f", roll, pitch);
+    }
 }
 
-void FailDetector::BotSpeedCb(nav_msgs::msg::Odometry::SharedPtr msg)
+std::string FailDetector::evaluateRollover(double roll, double pitch)
 {
-    m_bot_speed = msg->twist.twist.linear.x;
-    if (m_bot_speed > 0.0f && m_motion_state != "forward")
-    {
-        m_motion_state = "forward";
-        }
-    else if (m_bot_speed < 0.0f && m_motion_state != "backwards")
-    {
-        m_motion_state = "backwards";
-    }
+    if (std::abs(roll) > 1.0 || std::abs(pitch) > 1.0)
+        return "roll over";
+    else if (std::abs(roll) > 0.4 || std::abs(pitch) > 0.4)
+        return "pronounced";
+    return "normal";
 }

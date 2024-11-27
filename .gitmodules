@@ -5,3 +5,6 @@
 	path = rover/ros2/src/rosboard
 	url = https://github.com/kiwicampus/rosboard.git
 	branch = main-kiwi
+[submodule "/workspace/rover/ros2/src/fail_detection_cpp/tensorflow_cpp"]
+	path = /workspace/rover/ros2/src/fail_detection_cpp/tensorflow_cpp
+	url = https://github.com/tensorflow/tensorflow.git

@@ -15,6 +15,7 @@
 // #include "std_msgs/msg/int8.hpp"
 #include "std_msgs/msg/bool.hpp"
 #include "std_msgs/msg/int8.hpp"
+#include <usr_msgs/msg/fails.hpp>
 
 #include "utils/console.hpp"
 
@@ -52,7 +53,13 @@ public:
        the track-sound to play
     */
     void speakerCb(const std_msgs::msg::Int8::SharedPtr _msg);
+    
+    /*!
+        Callback to handle Fail detection events
+        @param msg usr_msgs::msg::Fails::SharedPtr Message with fail events
+    */
 
+    void failCb(const usr_msgs::msg::Fails::SharedPtr msg);
     /*!
     Thread function to play the sounds
     */
@@ -71,7 +78,9 @@ private:
     /********************************************
      * USE THIS AMAZING SUBSCRIBER
      ********************************************/
+    
     rclcpp::Subscription<std_msgs::msg::Int8>::SharedPtr m_speaker_sub;
+    rclcpp::Subscription<usr_msgs::msg::Fails>::SharedPtr m_fail_sub;
 
     /********************************************
      * END CODE
@@ -85,7 +94,7 @@ private:
      ********************************************/
 
     rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr m_done_pub;
-    
+
     /********************************************
      * END CODE
      ********************************************/
@@ -119,6 +128,7 @@ private:
     int ambient = 0;
     int m_pause = 0;
     int m_multi_sound = 1;
+    
     /* Thread to play the sound */
     pthread_t pthread_id;
     pthread_t pthread_id_ambient;

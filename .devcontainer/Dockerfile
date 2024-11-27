@@ -101,6 +101,10 @@ RUN pip3 install --no-cache-dir \
 # ------------------------------------------------------------------------------
 # Optionally, set Python 3 as the default Python
 RUN ln -s /usr/bin/python3 /usr/bin/python
+RUN pip install tensorflow-cpu
+RUN pip install --upgrade transforms3d
+
+COPY ../audio/pulse-client.conf /etc/pulse/client.conf
 
 RUN touch "/home/${USERNAME}/.bashrc" \
     && echo "source /workspace/scripts/alias_script.sh" >> "/home/${USERNAME}/.bashrc"
