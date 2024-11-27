@@ -1,24 +1,24 @@
 <?xml version="1.0"?>
-<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
-<package format="3">
+<package format="2">
   <name>interfaces</name>
-  <version>0.0.0</version>
-  <description>TODO: Package description</description>
-  <maintainer email="davidson@kiwibot.com">ada</maintainer>
-  <license>TODO: License declaration</license>
+  <version>0.0.1</version>
+  <description>The interfaces package</description>
 
-  <buildtool_depend>ament_cmake</buildtool_depend>
+  <maintainer email="you@example.com">Your Name</maintainer>
 
-  <test_depend>ament_lint_auto</test_depend>
-  <test_depend>ament_lint_common</test_depend>
+  <license>Apache 2.0</license>
 
-  <depend>std_msgs</depend>
-  <depend>usr_msgs</depend>
-  <depend>rclcpp</depend>
-  <depend>utils</depend>
-  <depend>ALSA</depend>
+  <!-- Dependencies -->
+  <build_depend>rclcpp</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>usr_msgs</build_depend>
+  <build_depend>rosidl_default_runtime</build_depend> <!-- Add this line -->
 
-  <export>
-    <build_type>ament_cmake</build_type>
-  </export>
+  <exec_depend>rclcpp</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>usr_msgs</exec_depend>
+  <exec_depend>rosidl_default_runtime</exec_depend> <!-- Add this line -->
+
+  <!-- ROSIDL Interface Declaration -->
+  <member_of_group>rosidl_interface_packages</member_of_group> <!-- Add this line -->
 </package>
