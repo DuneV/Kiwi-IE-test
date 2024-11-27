@@ -6,6 +6,7 @@
 */
 
 #include "modules/speaker.hpp"
+#include "usr_msgs/msg/fails.hpp"
 
 Speaker::Speaker(rclcpp::NodeOptions &options) : Node("speaker", "interfaces", options)
 {
@@ -36,6 +37,11 @@ Speaker::Speaker(rclcpp::NodeOptions &options) : Node("speaker", "interfaces", o
     m_speaker_sub = this->create_subscription<std_msgs::msg::Int8>(
         "/device/speaker/command", default_qos, std::bind(&Speaker::speakerCb, this, _1));
     
+    // Subscriber for fail detection events
+
+    m_fail_sub = this->create_subscription<usr_msgs::msg::Fails>(
+        "/fail_detection/fail", default_qos, std::bind(&Speaker::failCb, this, _1));  // Subscribe to fail events
+
     /********************************************
      * END CODE
      ********************************************/
@@ -125,6 +131,40 @@ void Speaker::speakerCb(const std_msgs::msg::Int8::SharedPtr msg)
         m_multi_sound = 1;
     }
 }
+
+void Speaker::failCb(const usr_msgs::msg::Fails::SharedPtr msg)
+{
+    // Iterate over the fail type msg
+    for (const auto &fail : msg->fails)
+    {
+        /*
+            Get and unzip the msg
+        */
+        RCLCPP_INFO(this->get_logger(), "Detected fail: %s, Confidence: %d, Message: %s",
+                    fail.event.c_str(), fail.confidence, fail.message.c_str());
+
+        // Handle different failure events and select the sound
+        if (fail.event == "collision" || fail.event == "rollover")
+        {
+            RCLCPP_INFO(this->get_logger(), "Critical fail detected: %s. Playing emergency sound TUUUUUU.", fail.event.c_str());
+            std_msgs::msg::Int8 sound_cmd;
+            sound_cmd.data = 2;
+            m_done_pub->publish(sound_cmd); // Publish the sound
+        }
+        else if (fail.event == "bump") // I selected "bump" because is less frequent
+        {
+            RCLCPP_INFO(this->get_logger(), "Fail detected: %s. Playing bump sound it sound like mud", fail.event.c_str());
+            std_msgs::msg::Int8 sound_cmd;
+            sound_cmd.data = 3; 
+            m_done_pub->publish(sound_cmd); 
+        }
+        else
+        {
+            RCLCPP_WARN(this->get_logger(), "Non-critical fail detected: %s", fail.event.c_str());
+        }
+    }
+}
+
 
 void *Speaker::PlaySound()
 {

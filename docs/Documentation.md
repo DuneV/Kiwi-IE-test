@@ -58,13 +58,19 @@ This document outlines the steps taken to complete the project requirements, inc
   You can see something like this:
   <center><img src="assets/model.png" alt="drawing", width="1000px"/>
 </center> 
+  
   3. Published accident detections to `/fail_detection/fail`.
+  
   4. Tested using rosbag files (EXTRA), ensuring accurate detection. With the command
   ```bash
       colcon test --event-handlers console_cohesion+ --packages-select fail_detection_py --pytest-args "-s"
-     ```
-  It is going to take a considerable time in order to run all this models to all rosbags.
+  ```
+It is going to take a considerable time in order to run all this models to all rosbags. Below you can see the output:
 
+<center><img src="assets/Test.png" alt="drawing", width="1000px"/>
+</center>
+
+It obtained a files with the labels over the .mcap file, on the [diagrams folder](../diagrams/) you can see on .json format the labels over 2 seconds of sampling, the ones that do not have a labels is because is not identified a collision.
 
 ## **Extra Homework**
 
@@ -127,6 +133,12 @@ So I obtained the expected behavior:
 - [`startRobotics.sh`](scripts/startRobotics.sh): Added `DELETE_BUILD` argument.
 
 ---
+
+### **6. Interfaces Node**
+- Wrote a node with the (EXTRA) requirements provided by the homework, I used it with the pulseaduio tunnel on the docker image, but eventually it fail (just on the recognition of the driver) on the host:
+  - It compiles, and on another machine it could apply work, the configs are already on the docker-compose.yml and devcontainer.json files.
+  - Here a test of compilation.
+
 
 ## **Challenges and Solutions**
 1. **Debugging Rosbags**:

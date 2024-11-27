@@ -10,7 +10,8 @@ services:
 
     init: true
     privileged: true
-
+    devices:
+      - /dev/snd:/dev/snd
     environment:
       - DISPLAY=$DISPLAY
       - QT_X11_NO_MITSHM=1

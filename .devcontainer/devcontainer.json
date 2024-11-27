@@ -42,6 +42,9 @@
 	  "ms-vscode.cmake-tools",
 	  "PKief.material-icon-theme",
 	  "tomoki1207.pdf"
-	]
+	],
+	"env": {
+    "UID": "1000"  // Establece el UID si es necesario
+  }
   }
   
