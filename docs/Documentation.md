@@ -41,17 +41,30 @@ This document outlines the steps taken to complete the project requirements, inc
      - Culprit: Possible the actual fail_detection with other node to handle this advices.
      - Next steps: Proposed fail-safe measures for navigation control.
 
-<!-- ### **Fail Detection Node**
+### **Fail Detection Node**
 - Selected Python for implementation (C++ was an optional bonus).
 - **Tasks**:
   1. Enabled the `NODE_FAIL_DETECTION_PY` in [`nodes_launch.sh`](rover/configs/nodes_launch.sh).
   2. Implemented collision and rollover detection using:
      - `/imu/data`
-     - `/local_plan`
+     - `/local_plan`  
+  You can se over the [Analisys file](analysis/notebooks/processing.ipynb) the process to obtain the model with different labels as:
+  [Nomal]
+  [Bump] 
+  [Collision]
+  [Stuck]
+  [Roll over]
+  So the model can classify 3 of them and the other are obtained by threshold method.
+  You can see something like this:
+  <center><img src="assets/model.png" alt="drawing", width="1000px"/>
+</center> 
   3. Published accident detections to `/fail_detection/fail`.
-  4. Tested using rosbag files, ensuring accurate detection.
+  4. Tested using rosbag files (EXTRA), ensuring accurate detection. With the command
+  ```bash
+      colcon test --event-handlers console_cohesion+ --packages-select fail_detection_py --pytest-args "-s"
+     ```
+  It is going to take a considerable time in order to run all this models to all rosbags.
 
---- -->
 
 ## **Extra Homework**
 
@@ -62,16 +75,16 @@ This document outlines the steps taken to complete the project requirements, inc
 COMPREPLY=($(compgen -W "$options" -- "$cur"))
 ```
 This with support of the packages name, following I obtained:
-<center><img src="assets/alias.png" alt="drawing"/>
+<center><img src="assets/alias.png" alt="drawing", width="1000px"/>
 </center> 
 
 ### **2. OpenCV Dockerfile**
 - Created a new `Dockerfile` to build OpenCV version 4.8.0 from scratch based on `ubuntu:20.04`. Where is located on [`Dockerfile_OpenCV`](../opencv-build/Dockerfile), was obtained the following machine:
 
-<center><img src="assets/docker_build.png" alt="drawing", height="300px"/>
+<center><img src="assets/docker_build.png" alt="drawing", height="300px", width="1000px"/>
 </center>
 Test of OpenCV presence:
-<center><img src="assets/docker_opencv.png" alt="drawing"/>
+<center><img src="assets/docker_opencv.png" alt="drawing", width="1000px"/>
 </center>  
 
 The command to build it is the follow:
@@ -92,7 +105,7 @@ docker build --memory=4g --memory-swap=6g -t opencv:4.8.0 .
 
 So I obtained the expected behavior:
 
-<center><img src="assets/remover.png" alt="drawing"/>
+<center><img src="assets/remover.png" alt="drawing", width="1000px"/>
 </center>  
 
 ### **5. Unit Tests for Fail Detector**
