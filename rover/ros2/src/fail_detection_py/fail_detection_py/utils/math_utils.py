@@ -6,7 +6,7 @@ import numpy as np
 import math
 
 
-def classify_event_with_threshold(jerk_deque, threshold=300) -> bool:
+def classify_event_with_threshold(jerk_deque, threshold=300 * 0.5) -> bool:
     """
     Classifies events based on a simple threshold check of the jerk magnitude.
 

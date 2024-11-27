@@ -2,15 +2,17 @@
 # Use Ubuntu 22.04 as the base image
 FROM ubuntu:22.04
 
+# Or your actual UID, GID on Linux if not the default 1000
 ARG USERNAME=ada
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
 
 COPY ../rover /workspace/rover
 
+# Set environment variables to avoid interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Update the system package list and install Python 3
+# Update the system package list and install Python 3, pip, and common dependencies
 RUN apt update && apt install -y --no-install-recommends \
     locales \
     python3 \
@@ -97,10 +99,13 @@ RUN pip3 install --no-cache-dir \
     && rm -rf /home/ada/.cache/pip
 
 # ------------------------------------------------------------------------------
-RUN echo "source /opt/ros/iron/setup.bash" >> /root/.bashrc
-RUN echo ". /workspace/rover/ros2/install/setup.bash" >> /root/.bashrc
+# Optionally, set Python 3 as the default Python
 RUN ln -s /usr/bin/python3 /usr/bin/python
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install tensorflow-cpu
+RUN pip install --upgrade transforms3d
+
+COPY ../audio/pulse-client.conf /etc/pulse/client.conf
+
 RUN touch "/home/${USERNAME}/.bashrc" \
     && echo "source /workspace/scripts/alias_script.sh" >> "/home/${USERNAME}/.bashrc"
 

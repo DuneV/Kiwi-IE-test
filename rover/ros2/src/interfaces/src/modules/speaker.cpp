@@ -143,7 +143,7 @@ void *Speaker::PlaySound()
      ********************************************/
     std_msgs::msg::Bool::UniquePtr msg(new std_msgs::msg::Bool());
     msg->data = false;
-    m_done_pub->publish(std::move(msg))
+    m_done_pub->publish(std::move(msg));
 
     /********************************************
      * END CODE

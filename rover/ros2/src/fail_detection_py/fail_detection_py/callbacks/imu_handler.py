@@ -51,6 +51,8 @@ class ImuHandler:
         self.required_samples = _n_samples  # Required number of samples for the model
         self.create_timer()
         self.alert_state = None  # flag to order the priorities ->
+        self.last_message_time = time.time()
+        self.reset_interval = 5
 
         # Start a background thread for processing jerk calculations
         self.processing_thread = Thread(target=self.process_jerk_data)
@@ -61,7 +63,7 @@ class ImuHandler:
         """
         Created a timer to config the callback
         """
-        self.timer = self.node.create_timer(1.0, self.evaluate_model)
+        self.timer = self.node.create_timer(2.0, self.evaluate_model)
 
     def imu_cb(self, msg: Imu):
         """
@@ -77,6 +79,8 @@ class ImuHandler:
             self.logger.debug("IMU data received, calculating jerk in background.")
             self.jerk_deque_x.appendleft(self.accel_deque_x[0])
             self.jerk_deque_y.appendleft(self.accel_deque_y[0])
+
+        self.last_message_time = time.time()
 
     def process_jerk_data(self):
         """
@@ -175,6 +179,11 @@ class ImuHandler:
         """
         Evaluate the model every 2 seconds using the accumulated data.
         """
+        current_time = time.time()
+        if current_time - self.last_message_time > self.reset_interval:
+            self.logger.warn("No IMU data received for a while. Resetting the model.")
+            self.reset_model()
+
         if len(self.jerk_deque_y) >= self.required_samples:
             #     # Process jerk and make prediction with the LSTM model
             total_time = (
@@ -191,25 +200,44 @@ class ImuHandler:
             self.lstm_model.invoke()
             output_data = self.lstm_model.get_tensor(self.output_details[0]["index"])[0]
             self.logger.info(f"Probabilities: {output_data}")
-            if output_data[1] > 0.35:
+            if (
+                classify_event_with_threshold(self.jerk_deque_y)
+                and output_data[1] > 0.25
+            ) or classify_event_with_threshold(self.jerk_deque_y):
                 self.handler_message(
                     output_data[1], "collision", "Collision detected by model."
                 )
             else:
                 if (
-                    classify_event_with_threshold(self.jerk_deque_y)
-                    and output_data[1] > 0.3
+                    classify_event_with_threshold(self.jerk_deque_y) == 1
+                    and output_data[1] > 0.27
                 ):
+                    self.handler_message(
+                        output_data[1], "collision", "Collision detected by model."
+                    )
+                if output_data[1] > 0.28:
                     self.handler_message(
                         output_data[1], "collision", "Collision detected by model."
                     )
                 elif (
                     classify_event_with_threshold(self.jerk_deque_y) == 0
-                    and output_data[2] < 0.6
+                    and output_data[2] < 0.65
                 ):
                     self.handler_message(output_data[0], "bump", "Bump")
                 else:
                     pass
+
+    def reset_model(self):
+        """
+        Reset the model by clearing the jerk data and re-initializing necessary variables.
+        """
+        self.jerk_deque_x.clear()
+        self.jerk_deque_y.clear()
+        self.accel_deque_x.clear()
+        self.accel_deque_y.clear()
+        self.imu_msgs_deque.clear()
+
+        self.logger.info("Model reset completed.")
 
     def handler_message(self, value, event, msg):
         """
@@ -222,7 +250,7 @@ class ImuHandler:
         fail_msg = Fails()
         fail_item = Fail()
         fail_item.event = event
-        fail_item.confidence = int(value)
+        fail_item.confidence = int(value * 100)
         fail_item.message = msg
         fail_msg.fails.append(fail_item)
         self.pub_fail.publish(fail_msg)

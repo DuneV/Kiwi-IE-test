@@ -47,7 +47,7 @@ class FailDetector(Node):
 
         # Handler IMU
         self.imu_handler = ImuHandler(
-            _n_samples=6,
+            _n_samples=12,
             _pub_fail=self.pub_fail,
             _logger=logger,
             _lstm_model=lstm_model,
